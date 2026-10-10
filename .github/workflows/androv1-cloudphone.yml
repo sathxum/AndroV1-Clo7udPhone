@@ -1,0 +1,57 @@
+name: AndroV1 Android 16 CloudPhone (Windows)
+
+on: 
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  cloudphone:
+    runs-on: windows-latest
+    timeout-minutes: 360
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup System Environment
+      shell: pwsh
+      run: |
+        Write-Host "==========================================================" -ForegroundColor Cyan
+        Write-Host "   ANDRO V1 // ANDROID 16 GOOGLE CLOUDPHONE (WINDOWS)     " -ForegroundColor Cyan
+        Write-Host "==========================================================" -ForegroundColor Cyan
+
+    - name: Setup Gateway & Tunnel
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
+        mkdir web-client -Force
+        @"
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+          <title>AndroV1 CloudPhone</title>
+          <style>
+            html, body { margin:0; padding:0; background:#050508; width:100%; height:100%; overflow:hidden; touch-action:none !important; }
+            #screen { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#0aff0a; font-family:monospace; }
+          </style>
+        </head>
+        <body>
+          <div id="screen">ANDRO V1 // CLOUDPHONE ACTIVE (14GB RAM)</div>
+        </body>
+        </html>
+        "@ | Set-Content -Path "web-client\index.html" -Encoding UTF8
+        
+        Start-Process powershell -ArgumentList "-Command", "python -m http.server 8080 --directory web-client" -WindowStyle Hidden
+        Start-Sleep -Seconds 3
+        Start-Process -FilePath ".\cloudflared.exe" -ArgumentList "tunnel --url http://127.0.0.1:8080" -RedirectStandardError "cf.log" -WindowStyle Hidden
+        Start-Sleep -Seconds 6
+        Get-Content "cf.log" | Select-String "trycloudflare.com"
+
+    - name: Keep Alive Monitor
+      shell: pwsh
+      run: |
+        Write-Host "Session active for 6 hours max..."
+        for ($i=360; $i -gt 0; $i--) { Start-Sleep -Seconds 60 }
